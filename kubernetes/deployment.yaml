@@ -1,0 +1,56 @@
+# kubernetes/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-mysql-app-deployment
+  labels:
+    app: php-mysql-app
+spec:
+  replicas: 1 # You can adjust the number of replicas
+  selector:
+    matchLabels:
+      app: php-mysql-app
+  template:
+    metadata:
+      labels:
+        app: php-mysql-app
+    spec:
+      containers:
+      - name: php-mysql-app
+        # The image will be updated by Jenkins during the 'kubectl set image' step
+        image: your-harbor-registry.example.com/your-harbor-project/php-mysql-app:latest
+        ports:
+        - containerPort: 80
+        env:
+        # Environment variables for MySQL connection
+        # IMPORTANT: Use Kubernetes Secrets for production credentials!
+        # For demonstration, placeholders are used.
+        - name: DB_HOST
+          value: "mysql-service.default.svc.cluster.local" # Replace with your MySQL service name in K8s
+        - name: DB_USER
+          value: "root" # Replace with your MySQL username
+        - name: DB_PASSWORD
+          value: "password" # Replace with your MySQL password
+        - name: DB_NAME
+          value: "my_database" # Replace with your MySQL database name
+        # You would typically mount a volume for persistent PHP sessions or uploads if needed
+        # volumeMounts:
+        # - name: php-data
+        #   mountPath: /var/www/html/data
+      # volumes:
+      # - name: php-data
+      #   persistentVolumeClaim:
+      #     claimName: php-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-mysql-app-service
+spec:
+  selector:
+    app: php-mysql-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer # Use LoadBalancer for cloud, NodePort for local testing, or Ingress for advanced routing
